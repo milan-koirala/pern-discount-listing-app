@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 🌸 Custom Cute Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--b2)); /* Tailwind/DaisyUI base-200 background */
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--p)); /* Tailwind primary color */
+  border-radius: 9999px;
+  border: 2px solid hsl(var(--b2)); /* adds border spacing for a bubble look */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--pf)); /* primary focus */
+}
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--p)) hsl(var(--b2));
+}
