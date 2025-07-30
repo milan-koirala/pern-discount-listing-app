@@ -1,5 +1,5 @@
 import { sql } from "../config/db.js";
-
+import bcrypt from "bcrypt";
 
 export const getShops = async (req, res) => {
     try {
@@ -18,13 +18,17 @@ export const getShops = async (req, res) => {
 
 
 export const createShop = async (req, res) => {
-    const { shop_name, email, password_hash, city } = req.body;
+    const { shop_name, email, password, city } = req.body;
 
-    if (!shop_name || !email || !password_hash || !city) {
+    if (!shop_name || !email || !password || !city) {
         return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
     try {
+        // Hash the password
+        const saltRounds = 10;
+        const password_hash = await bcrypt.hash(password, saltRounds);
+
         const newShop = await sql`
             INSERT INTO shops (shop_name, email, password_hash, city)
             VALUES (${shop_name}, ${email}, ${password_hash}, ${city})
@@ -39,6 +43,42 @@ export const createShop = async (req, res) => {
     }
 };
 
+// Login a shop
+export const loginShop = async (req, res) => {
+    const { email, password } = req.body;
+
+    // Validate required fields
+    if (!email || !password) {
+        return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    try {
+        // Find shop by email
+        const shops = await sql`
+            SELECT * FROM shops WHERE email = ${email}
+        `;
+        if (shops.length === 0) {
+            return res.status(401).json({ success: false, message: "Invalid email or password" });
+        }
+
+        const shop = shops[0];
+
+        // Compare provided password with stored hash
+        const isMatch = await bcrypt.compare(password, shop.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: "Invalid email or password" });
+        }
+
+        // Remove password_hash from response
+        const { password_hash, ...shopData } = shop;
+
+        console.log("Shop logged in:", shopData);
+        res.status(200).json({ success: true, data: shopData });
+    } catch (error) {
+        console.error("Error logging in shop:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
 
 export const getShop = async (req, res) => {
     const { id } = req.params;
@@ -56,8 +96,8 @@ export const getShop = async (req, res) => {
 };
 
 
+
 export const updateShop = async (req, res) => {
-    // console.log('PUT /api/shops/:id');
 
     const { id } = req.params;
     const { shop_name, email, password_hash, city } = req.body;
@@ -111,6 +151,8 @@ export const updateShop = async (req, res) => {
         });
     }
 };
+
+
 
 
 export const deleteShop = async (req, res) => {
