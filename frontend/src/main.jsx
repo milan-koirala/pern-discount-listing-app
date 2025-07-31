@@ -1,13 +1,23 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-import { BrowserRouter } from 'react-router-dom'
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.jsx";
+import { BrowserRouter } from "react-router-dom";
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
+import { AuthProvider } from "./context/AuthContext.jsx";
+import { useThemeStore } from "./store/useThemeStore"; 
+
+
+useThemeStore.getState();
+
+
+createRoot(document.getElementById("root")).render(
+  // <StrictMode>
+  <AuthProvider>
     <BrowserRouter>
+      {/* <ThemeProvider> */}
       <App />
+    {/* </ThemeProvider> */}
     </BrowserRouter>
-  </StrictMode>,
-)
+  </AuthProvider>
+  // </StrictMode>,
+);
