@@ -11,15 +11,13 @@ import { useAuth } from "./context/AuthContext";
 
 function App() {
   const { theme } = useThemeStore();
-  const { user, loading } = useAuth();
+  const { user, authLoading } = useAuth();
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
+if (authLoading) return <div className="loading loading-lg"></div>;
 
   return (
     <div className="min-h-screen bg-base-200">

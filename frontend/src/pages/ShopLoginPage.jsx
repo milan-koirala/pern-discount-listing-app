@@ -37,13 +37,12 @@ function ShopLoginPage() {
     }
 
     try {
-      const data = await loginShop(); // Zustand store calls backend login
-      // Backend should send token in response.data.token (adjust if different)
-      login(data.token, data.data); // Update context + localStorage
-      setErrors({});
-      navigate("/");
+    const data = await loginShop();
+    console.log("✅ Login Response:", data);
+    login(data.token, data.data);
+    navigate("/");
     } catch (err) {
-      setErrors({ general: err.message || "Login failed" });
+    setErrors({ general: err.message || "Login failed" });
     }
   };
 

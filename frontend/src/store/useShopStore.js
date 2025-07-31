@@ -16,35 +16,35 @@ export const useShopStore = create((set, get) => ({
   setFormData: (data) =>
     set((state) => ({ formData: { ...state.formData, ...data } })),
 
-    loginShop: async () => {
-        set({ loading: true, error: null });
-        try {
-        const { formData } = get();
-        const response = await axiosInstance.post("/api/auth/login", {
-            email: formData.email,
-            password: formData.password,
-        });
+  loginShop: async () => {
+    set({ loading: true, error: null });
+    try {
+      const { formData } = get();
+      const response = await axiosInstance.post("/api/auth/login", {
+        email: formData.email,
+        password: formData.password,
+      });
 
-        if (response.data?.success) {
-            toast.success("Logged in successfully");
-        } else {
-            toast.error(response.data?.message || "Login failed");
-        }
+      if (response.data?.success) {
+        toast.success("Logged in successfully");
+      } else {
+        toast.error(response.data?.message || "Login failed");
+      }
 
-        set({ loading: false });
-        return response.data;
-        } catch (error) {
-        const message =
-            error.response?.data?.message ||
-            (error.code === "ERR_NETWORK"
-            ? "Cannot connect to server"
-            : "Failed to login");
+      set({ loading: false });
+      return response.data;
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        (error.code === "ERR_NETWORK"
+          ? "Cannot connect to server"
+          : "Failed to login");
 
-        set({ error: message, loading: false });
-        toast.error(message);
-        throw new Error(message);
-        }
-    },
+      set({ error: message, loading: false });
+      toast.error(message);
+      throw new Error(message);
+    }
+  },
 
   clearFormData: () =>
     set({
