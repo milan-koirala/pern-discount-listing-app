@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { UserCircle2Icon, LogOutIcon, SettingsIcon } from "lucide-react";
+import {
+  UserCircle2Icon,
+  LogOutIcon,
+  SettingsIcon,
+  PlusCircleIcon,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -47,8 +52,19 @@ function UserMenu() {
           className="absolute right-0 mt-2 w-48 bg-base-200 backdrop-blur-lg rounded-xl border border-base-content/10 shadow-lg z-50"
           role="menu"
           aria-label="User menu"
-          aria-hidden={!open}
         >
+          <li>
+            <button
+              className="flex items-center gap-2 w-full px-4 py-3 hover:bg-base-content/10"
+              role="menuitem"
+              onClick={() =>
+                document.getElementById("add_discount_modal")?.showModal()
+              }
+            >
+              <PlusCircleIcon className="size-5" />
+              Add Discount
+            </button>
+          </li>
           <li>
             <button
               onClick={handleManageShop}
