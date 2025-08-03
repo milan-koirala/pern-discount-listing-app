@@ -91,14 +91,24 @@ export const useShopStore = create((set, get) => ({
   // Update shop
   updateShopInfo: async (id, formData) => {
     set({ loading: true, error: null });
+
     try {
       const res = await axiosInstance.put(`/api/shops/${id}/info`, formData);
-      toast.success("Shop information updated successfully");
-      set({ shopData: res.data.data });
+
+      if (res.data?.success) {
+        toast.success("Shop information updated successfully");
+        set({ shopData: res.data.data });
+        return { success: true }; // signal to redirect
+      } else {
+        toast.error(res.data?.message || "Update failed");
+        return { success: false };
+      }
+
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to update shop";
       toast.error(msg);
-      set({ error: err });
+      set({ error: msg });
+      return { success: false };
     } finally {
       set({ loading: false });
     }
@@ -106,16 +116,20 @@ export const useShopStore = create((set, get) => ({
 
   updateShopPassword: async (id, current_password, new_password) => {
     set({ loading: true, error: null });
+
     try {
       const res = await axiosInstance.put(`/api/shops/${id}/password`, {
         current_password,
         new_password,
       });
+
       toast.success("Password changed successfully");
+      return { success: true };
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to change password";
       toast.error(msg);
-      set({ error: err });
+      set({ error: msg });
+      return { success: false };
     } finally {
       set({ loading: false });
     }
