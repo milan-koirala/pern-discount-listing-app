@@ -1,105 +1,100 @@
 import { create } from "zustand";
-import axios from "axios";
 import toast from "react-hot-toast";
-
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import axiosInstance from "../utils/axiosInstance";
 
 export const useDiscountStore = create((set, get) => ({
-    discounts: [],
-    shops: [], // Add shops state
-    loading: false,
-    error: null,
-    formData: {
-        title: "",
-        discount_percentage: "",
-        category: "",
-        start_date: "",
-        end_date: "",
-        shop_id: "", // Add shop_id to formData
-    },
+  formData: {
+    shop_id: "",
+    title: "",
+    discount_percentage: "",
+    category: "",
+    start_date: "",
+    end_date: "",
+  },
+  loading: false,
+  error: null,
+  discounts: [],
+  shops: [],
 
-    setFormData: (newFormData) =>
-        set((state) => ({
-            formData: { ...state.formData, ...newFormData },
-        })),
+  setFormData: (data) =>
+    set((state) => ({
+      formData: { ...state.formData, ...data },
+    })),
 
-    resetForm: () =>
+  setLoading: (val) => set({ loading: val }),
+
+  // ✅ Reusable fetch helper
+  fetchData: async (url, label = "discounts", params = {}) => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await axiosInstance.get(url, { params });
+      const data = res.data?.data;
+
+      if (Array.isArray(data)) {
+        set({ discounts: data });
+      } else {
+        console.warn(`Unexpected ${label} response format:`, res.data);
+        set({ discounts: [] });
+      }
+    } catch (err) {
+      console.error(`Error fetching ${label}:`, err);
+      set({
+        error: `Failed to load ${label}`,
+        discounts: [],
+      });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchDiscounts: async (params = {}) => {
+    await get().fetchData("/api/discounts", "discounts", params);
+  },
+
+  fetchMyDiscounts: async (params = {}) => {
+    await get().fetchData("/api/discounts/my", "your discounts", params);
+  },
+
+  addDiscount: async () => {
+    const { formData } = get();
+    set({ loading: true, error: null });
+
+    try {
+      const response = await axiosInstance.post("/api/discounts/add", formData);
+
+      if (response.data.success) {
+        toast.success("Discount added successfully!");
+
         set({
-            formData: {
-                title: "",
-                discount_percentage: "",
-                category: "",
-                start_date: "",
-                end_date: "",
-                shop_id: "",
-            },
-        }),
+          formData: {
+            shop_id: formData.shop_id,
+            title: "",
+            discount_percentage: "",
+            category: "",
+            start_date: "",
+            end_date: "",
+          },
+        });
 
-    fetchShops: async () => {
-        set({ loading: true, error: null });
-        try {
-            const response = await axios.get(`${BASE_URL}/api/shops`);
-            set({ shops: response.data.data, error: null });
-        } catch (error) {
-            console.error("Error fetching shops:", error);
-            const message = error.response?.data?.message || "Failed to fetch shops";
-            set({ error: message });
-            toast.error(message);
-        } finally {
-            set({ loading: false });
-        }
-    },
+        await get().fetchDiscounts();
+        return response.data;
+      } else {
+        toast.error(response.data.message || "Failed to add discount");
+        set({ error: response.data.message || "Add failed" });
+      }
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        (error.code === "ERR_NETWORK"
+          ? "Cannot connect to server"
+          : "Failed to add discount");
 
-    addDiscount: async () => {
-        set({ loading: true });
-        try {
-            const { formData } = get();
-
-            const startDateISO = new Date(formData.start_date).toISOString();
-            const endDateISO = new Date(formData.end_date).toISOString();
-
-            const payload = {
-                ...formData,
-                discount_percentage: parseFloat(formData.discount_percentage),
-                start_date: startDateISO,
-                end_date: endDateISO,
-                shop_id: parseInt(formData.shop_id), // Ensure integer
-            };
-
-            console.log("Payload sent to API:", payload);
-
-            await axios.post(`${BASE_URL}/api/discounts/addDiscount`, payload);
-
-            await get().fetchDiscounts();
-            get().resetForm();
-            toast.success("Discount added successfully");
-
-            const dialog = document.getElementById("add_discount_modal");
-            if (dialog && dialog.close) dialog.close();
-        } catch (error) {
-            // console.error("Error in addDiscount function", {
-            //     message: error.message,
-            //     response: error.response?.data
-            // });
-            toast.error(error.response?.data?.message || "Something went wrong");
-        } finally {
-            set({ loading: false });
-        }
-    },
-
-    fetchDiscounts: async (filters = {}) => {
-        set({ loading: true, error: null });
-        try {
-            const params = new URLSearchParams(filters).toString();
-            const response = await axios.get(`${BASE_URL}/api/discounts?${params}`);
-            set({ discounts: response.data.data, error: null });
-        } catch (error) {
-            console.error("Error fetching discounts:", error);
-            const message = error.response?.data?.message || "Failed to fetch discounts";
-            set({ error: message });
-            toast.error(message);
-        } finally {
-            set({ loading: false });
-        }
-    },
+      toast.error(message);
+      set({ error: message });
+      throw new Error(message);
+    } finally {
+      set({ loading: false });
+    }
+  },
 }));
