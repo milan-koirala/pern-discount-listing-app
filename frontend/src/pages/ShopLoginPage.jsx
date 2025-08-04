@@ -78,12 +78,7 @@ function ShopLoginPage() {
                 error={errors.password}
               />
             </div>
-            {errors.general && (
-              <p className="text-sm text-red-500">{errors.general}</p>
-            )}
-            {error && !errors.general && (
-              <p className="text-sm text-red-500">{error}</p>
-            )}
+            
             <div className="modal-action">
               <button
                 type="submit"
