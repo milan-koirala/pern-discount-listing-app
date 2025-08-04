@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   StoreIcon,
@@ -13,42 +13,64 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useShopStore } from "../store/useShopStore";
 import InputField from "../components/InputField";
+import toast from "react-hot-toast";
 
 function ManageShopPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
     shopData,
-    formData,
-    setFormData,
     fetchShop,
     updateShopInfo,
     updateShopPassword,
     loading,
   } = useShopStore();
 
-  const [activeTab, setActiveTab] = useState("personal");
+  const [formData, setFormData] = useState({
+    shop_name: "",
+    email: "",
+    city: "",
+  });
+
+  const [initialFormData, setInitialFormData] = useState({
+    shop_name: "",
+    email: "",
+    city: "",
+  });
+
   const [passwords, setPasswords] = useState({
     current_password: "",
     new_password: "",
     confirm_password: "",
   });
 
+  const [activeTab, setActiveTab] = useState("personal");
+
   useEffect(() => {
     if (user?.id) {
       fetchShop(user.id);
     }
-  }, [user]);
+  }, [user, fetchShop]);
 
   useEffect(() => {
     if (shopData) {
-      setFormData({
+      const newFormData = {
         shop_name: shopData.shop_name || "",
         email: shopData.email || "",
         city: shopData.city || "",
-      });
+      };
+      setFormData(newFormData);
+      setInitialFormData(newFormData);
     }
   }, [shopData]);
+
+  const hasChanges = useMemo(() => {
+    return (
+      formData.shop_name !== initialFormData.shop_name ||
+      formData.email !== initialFormData.email ||
+      formData.city !== initialFormData.city
+    );
+  }, [formData, initialFormData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,8 +84,14 @@ function ManageShopPage() {
 
   const handleUpdateInfo = async (e) => {
     e.preventDefault();
-    await updateShopInfo(user.id, formData);
-    navigate("/discounts");
+    if (!hasChanges) return;
+
+    const result = await updateShopInfo(user.id, formData);
+
+    if (result?.success) {
+      setInitialFormData(formData);
+      navigate("/");
+    }
   };
 
   const handleChangePassword = async (e) => {
@@ -71,21 +99,38 @@ function ManageShopPage() {
     const { current_password, new_password, confirm_password } = passwords;
 
     if (!current_password || !new_password || !confirm_password) {
-      return alert("All password fields are required.");
+      toast.error("All password fields are required");
+      return;
     }
 
     if (new_password !== confirm_password) {
-      return alert("New passwords do not match.");
+      toast.error("New password and confirmation do not match");
+      return;
     }
 
-    await updateShopPassword(user.id, current_password, new_password);
-    navigate("/discounts");
+    const confirm = window.confirm("Are you sure you want to change password?");
+    if (!confirm) return;
+
+    const result = await updateShopPassword(
+      user.id,
+      current_password,
+      new_password
+    );
+
+    if (result?.success) {
+      setPasswords({
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
+      navigate("/");
+    }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container max-w-7xl mx-auto px-4 py-8">
       <button
-        onClick={() => navigate("/discounts")}
+        onClick={() => navigate("/")}
         className="btn btn-ghost mb-6 flex items-center gap-2"
       >
         <ArrowLeftIcon className="w-4 h-4" />
@@ -93,21 +138,20 @@ function ManageShopPage() {
       </button>
 
       <div className="card bg-base-100 shadow-xl p-6">
-        {/* Shop Header */}
         <div className="mb-6">
           <h2 className="text-xl font-bold flex items-center gap-2 mb-1">
             <StoreIcon className="w-6 h-6" />
             {shopData?.shop_name || "Shop Name"}
           </h2>
-          <p className="text-sm text-gray-500">{shopData?.email}</p>
+          <p className="text-sm text-gray-500 ml-8">{shopData?.email}</p>
         </div>
 
-        {/* Content Layout */}
-        <div className="flex gap-8">
-          {/* Sidebar */}
-          <div className="flex flex-col gap-2 w-48 border-r pr-4">
+        {/* Responsive Layout */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Tabs */}
+          <div className="flex flex-row lg:flex-col gap-2 border-b lg:border-b-0 lg:border-r pb-4 lg:pb-0 lg:pr-4 w-full lg:w-48">
             <button
-              className={`flex items-center gap-2 py-2 px-3 rounded-md font-medium text-left ${
+              className={`flex items-center gap-2 py-2 px-3 rounded-md font-medium whitespace-nowrap ${
                 activeTab === "personal"
                   ? "bg-primary text-white"
                   : "text-gray-700 hover:bg-gray-100"
@@ -115,10 +159,10 @@ function ManageShopPage() {
               onClick={() => setActiveTab("personal")}
             >
               <UserIcon className="w-4 h-4" />
-              Personal Info
+              <span>Shop Info</span>
             </button>
             <button
-              className={`flex items-center gap-2 py-2 px-3 rounded-md font-medium text-left ${
+              className={`flex items-center gap-2 py-2 px-3 rounded-md font-medium whitespace-nowrap ${
                 activeTab === "security"
                   ? "bg-primary text-white"
                   : "text-gray-700 hover:bg-gray-100"
@@ -126,12 +170,12 @@ function ManageShopPage() {
               onClick={() => setActiveTab("security")}
             >
               <ShieldIcon className="w-4 h-4" />
-              Security
+              <span>Security</span>
             </button>
           </div>
 
-          {/* Form Content */}
-          <div className="flex-1">
+          {/* Form Section */}
+          <div className="w-full">
             {activeTab === "personal" && (
               <form onSubmit={handleUpdateInfo} className="space-y-4">
                 <InputField
@@ -140,6 +184,7 @@ function ManageShopPage() {
                   value={formData.shop_name}
                   onChange={handleChange}
                   icon={StoreIcon}
+                  placeholder="Enter shop name"
                 />
                 <InputField
                   label="Email"
@@ -147,6 +192,7 @@ function ManageShopPage() {
                   value={formData.email}
                   onChange={handleChange}
                   icon={MailIcon}
+                  placeholder="Enter email"
                 />
                 <InputField
                   label="City"
@@ -154,18 +200,22 @@ function ManageShopPage() {
                   value={formData.city}
                   onChange={handleChange}
                   icon={MapPinIcon}
+                  placeholder="Enter city"
                 />
-
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end sm:gap-2 pt-4">
                   <button
                     type="button"
-                    onClick={() => navigate("/discounts")}
-                    className="btn btn-ghost"
+                    onClick={() => navigate("/")}
+                    className="btn btn-ghost w-full sm:w-auto mb-2 sm:mb-0"
                     disabled={loading}
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-full sm:w-auto"
+                    disabled={loading || !hasChanges}
+                  >
                     {loading ? (
                       <span className="loading loading-spinner loading-sm" />
                     ) : (
@@ -188,6 +238,7 @@ function ManageShopPage() {
                   value={passwords.current_password}
                   onChange={handlePasswordChange}
                   icon={LockIcon}
+                  placeholder="Enter current password"
                 />
                 <InputField
                   label="New Password"
@@ -196,6 +247,7 @@ function ManageShopPage() {
                   value={passwords.new_password}
                   onChange={handlePasswordChange}
                   icon={LockIcon}
+                  placeholder="Enter new password"
                 />
                 <InputField
                   label="Confirm Password"
@@ -204,18 +256,27 @@ function ManageShopPage() {
                   value={passwords.confirm_password}
                   onChange={handlePasswordChange}
                   icon={LockIcon}
+                  placeholder="Confirm new password"
                 />
-
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end sm:gap-2 pt-4">
                   <button
                     type="button"
-                    onClick={() => navigate("/discounts")}
-                    className="btn btn-ghost"
+                    onClick={() => navigate("/")}
+                    className="btn btn-ghost w-full sm:w-auto mb-2 sm:mb-0"
                     disabled={loading}
                   >
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary w-full sm:w-auto"
+                    disabled={
+                      loading ||
+                      !passwords.current_password ||
+                      !passwords.new_password ||
+                      !passwords.confirm_password
+                    }
+                  >
                     {loading ? (
                       <span className="loading loading-spinner loading-sm" />
                     ) : (
