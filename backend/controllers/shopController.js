@@ -1,6 +1,7 @@
 import { sql } from "../config/db.js";
 import bcrypt from "bcrypt";
 
+
 export const getShops = async (req, res) => {
     try {
         const shops = await sql`
@@ -8,10 +9,10 @@ export const getShops = async (req, res) => {
         ORDER BY created_at DESC
         `;
 
-        console.log("fetched shops", shops);
+        // console.log("--> fetched shops", shops);
         res.status(200).json({ success: true, data: shops });
     } catch (error) {
-        console.log("Error in getShops function", error);
+        // console.log("->> Error in getShops function", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
@@ -35,50 +36,14 @@ export const createShop = async (req, res) => {
             RETURNING *
         `;
 
-        console.log("New shop created", newShop);
+        // console.log("--> New shop created", newShop);
         res.status(201).json({ success: true, data: newShop[0] });
     } catch (error) {
-        console.error("Error creating shop", error);
+        // console.error("->> Error creating shop", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
-// Login a shop
-export const loginShop = async (req, res) => {
-    const { email, password } = req.body;
-
-    // Validate required fields
-    if (!email || !password) {
-        return res.status(400).json({ success: false, message: "Email and password are required" });
-    }
-
-    try {
-        // Find shop by email
-        const shops = await sql`
-            SELECT * FROM shops WHERE email = ${email}
-        `;
-        if (shops.length === 0) {
-            return res.status(401).json({ success: false, message: "Invalid email or password" });
-        }
-
-        const shop = shops[0];
-
-        // Compare provided password with stored hash
-        const isMatch = await bcrypt.compare(password, shop.password_hash);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: "Invalid email or password" });
-        }
-
-        // Remove password_hash from response
-        const { password_hash, ...shopData } = shop;
-
-        console.log("Shop logged in:", shopData);
-        res.status(200).json({ success: true, data: shopData });
-    } catch (error) {
-        console.error("Error logging in shop:", error);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
 
 export const getShop = async (req, res) => {
     const { id } = req.params;
@@ -90,69 +55,78 @@ export const getShop = async (req, res) => {
 
         res.status(200).json({ success: true, data: shop[0] });
     } catch (error) {
-        console.log("Error in getShop function", error);
+        // console.log("->> Error in getShop function", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
 
 
-export const updateShop = async (req, res) => {
+export const updateShopInfo = async (req, res) => {
+  const { id } = req.params;
+  const { shop_name, email, city } = req.body;
 
-    const { id } = req.params;
-    const { shop_name, email, password_hash, city } = req.body;
+  if (!shop_name || !email || !city) {
+    return res.status(400).json({ success: false, message: "Missing fields" });
+  }
 
-    // Basic validation ko lagi
-    if (!shop_name || !email || !password_hash || !city) {
-        return res.status(400).json({
-        success: false,
-        message: "All fields (shop_name, email, password_hash, city) are required.",
-        });
+  try {
+    const result = await sql`
+      UPDATE shops
+      SET shop_name = ${shop_name},
+          email = ${email},
+          city = ${city},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *`;
+
+    if (result.length === 0) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
     }
 
-    try {
-        const updatedShop = await sql`
-        UPDATE shops 
-        SET shop_name = ${shop_name},
-            email = ${email},
-            password_hash = ${password_hash},
-            city = ${city},
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ${id}
-        RETURNING *
-        `;
-
-        if (updatedShop.length === 0) {
-        return res.status(404).json({
-            success: false,
-            message: `Shop with ID ${id} not found.`,
-        });
-        }
-
-        return res.status(200).json({
-        success: true,
-        message: "Shop updated successfully.",
-        data: updatedShop[0],
-        });
-    } catch (error) {
-        console.error("Error in updateShop:", error);
-
-        // Handle unique email violation
-        if (error.code === '23505') {
-        return res.status(409).json({
-            success: false,
-            message: "Email already exists. Please use a different email.",
-        });
-        }
-
-        return res.status(500).json({
-        success: false,
-        message: "Internal Server Error",
-        });
+    res.status(200).json({ success: true, data: result[0] });
+  } catch (err) {
+    // console.error("->> updateShopInfo error", err);
+    if (err.code === "23505") {
+      return res.status(409).json({ success: false, message: "Email already in use" });
     }
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 };
 
 
+export const updateShopPassword = async (req, res) => {
+  const { id } = req.params;
+  const { current_password, new_password } = req.body;
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({ success: false, message: "All fields required" });
+  }
+
+  try {
+    const result = await sql`SELECT password_hash FROM shops WHERE id = ${id}`;
+    if (!result.length) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
+    }
+
+    const isMatch = await bcrypt.compare(current_password, result[0].password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Incorrect current password" });
+    }
+
+    const newHash = await bcrypt.hash(new_password, 10);
+    await sql`
+      UPDATE shops
+      SET password_hash = ${newHash},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}`;
+
+    res.status(200).json({ success: true, message: "Password updated successfully" });
+  } catch (err) {
+    // console.error("->> updateShopPassword error", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 
 export const deleteShop = async (req, res) => {
@@ -169,10 +143,10 @@ export const deleteShop = async (req, res) => {
         message: "Shop not found",
     });
     }
-        console.log("Deleted shop", deletedShop);
+        // console.log("--> Deleted shop", deletedShop);
         res.status(200).json({ success: true, data: deletedShop[0] });
     } catch (error) {
-        console.log("Error in deleteShop function", error);
+        // console.log("->> Error in deleteShop function", error);
         res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
