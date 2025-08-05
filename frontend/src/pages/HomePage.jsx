@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDiscountStore } from "../store/useDiscountStore";
 import {
   RefreshCwIcon,
@@ -6,43 +7,67 @@ import {
   UserCheckIcon,
   PackageIcon,
 } from "lucide-react";
-import AddDiscountModal from "../components/AddDiscountModel";
 import DiscountCard from "../components/DiscountCard";
 
 function Homepage() {
-  const {
-    discounts,
-    fetchDiscounts,
-    fetchMyDiscounts,
-    loading,
-    error,
-  } = useDiscountStore();
+  const { discounts, fetchDiscounts, fetchMyDiscounts, loading, error } = useDiscountStore();
 
-  const [filter, setFilter] = useState("all"); // Default to all
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  // Fetch discounts on mount and when filter changes
+  // Get initial values from URL
+  const initialSearch = searchParams.get("search") || "";
+  const initialFilter = searchParams.get("filter") || "all";
+
+  // React state
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [filter, setFilter] = useState(initialFilter);
+
+  // Sync search & filter state to URL with debounce
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const params = {};
+
+      if (searchQuery) params.search = searchQuery;
+      if (filter && filter !== "all") params.filter = filter;
+
+      setSearchParams(params);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [searchQuery, filter]);
+
+  // Fetch discounts whenever filter/search changes
   useEffect(() => {
     if (filter === "all") {
-      fetchDiscounts();
+      fetchDiscounts({ search: searchQuery });
     } else {
-      fetchMyDiscounts();
+      fetchMyDiscounts({ search: searchQuery });
     }
-  }, [filter]);
+  }, [searchQuery, filter]);
+
+  // Sync state with URL if user navigates with browser controls
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    const urlFilter = searchParams.get("filter") || "all";
+
+    if (urlSearch !== searchQuery) setSearchQuery(urlSearch);
+    if (urlFilter !== filter) setFilter(urlFilter);
+  }, [searchParams]);
 
   const handleRefresh = () => {
     if (filter === "all") {
-      fetchDiscounts();
+      fetchDiscounts({ search: searchQuery });
     } else {
-      fetchMyDiscounts();
+      fetchMyDiscounts({ search: searchQuery });
     }
   };
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header: Filter & Actions */}
+      {/* Header: Filter, Search & Actions */}
       <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         {/* Filter dropdown */}
-        <div className="relative w-full sm:w-48">
+        <div className="relative w-full sm:w-40">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
             {filter === "all" ? <UsersIcon size={18} /> : <UserCheckIcon size={18} />}
           </span>
@@ -56,6 +81,18 @@ function Homepage() {
           </select>
         </div>
 
+        {/* Search input */}
+        <div className="relative w-full sm:w-[20rem]">
+          <input
+            type="text"
+            placeholder="Search discounts or shop name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input input-bordered w-full text-base"
+          />
+        </div>
+
+
         {/* Actions */}
         <div className="flex items-center gap-2">
           <button
@@ -65,7 +102,6 @@ function Homepage() {
           >
             <RefreshCwIcon className="size-5" />
           </button>
-          <AddDiscountModal />
         </div>
       </div>
 
