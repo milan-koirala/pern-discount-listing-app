@@ -9,6 +9,7 @@ import { useThemeStore } from "./store/useThemeStore";
 import { useAuth } from "./context/AuthContext";
 import ManageShopPage from "./pages/ManageShopPage";
 import Homepage from "./pages/HomePage";
+import AddDiscountModal from "./components/AddDiscountModel";
 
 function App() {
   const { theme } = useThemeStore();
@@ -19,7 +20,7 @@ function App() {
     document.documentElement.setAttribute("data-theme", theme);
   }, [theme]);
 
-  // ❌ Hide Navbar on these routes
+  // Hide Navbar on these routes
   const hideNavbarRoutes = ["/login", "/register"];
   const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
@@ -53,6 +54,7 @@ function App() {
       </Routes>
 
       <Toaster />
+      <AddDiscountModal/>
     </div>
   );
 }
