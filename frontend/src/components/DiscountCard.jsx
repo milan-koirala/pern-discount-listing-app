@@ -16,7 +16,7 @@ import {
   isValid,
 } from "date-fns";
 
-function DiscountCard({ discount, onEdit, onDelete }) {
+function DiscountCard({ discount, onEdit, onDelete, filter }) {
   let startDate = null;
   let endDate = null;
 
@@ -29,9 +29,7 @@ function DiscountCard({ discount, onEdit, onDelete }) {
       const parsed = parseISO(discount.end_date);
       endDate = isValid(parsed) ? parsed : null;
     }
-  } catch {
-    // fail silently
-  }
+  } catch {}
 
   const today = new Date();
   const isActive =
@@ -41,7 +39,6 @@ function DiscountCard({ discount, onEdit, onDelete }) {
 
   return (
     <div className="card bg-base-100 shadow-md hover:shadow-xl transition-shadow duration-300 rounded-2xl overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-base-content/10">
         <div className="flex items-center gap-3">
           <StoreIcon className="w-5 h-5 text-secondary" />
@@ -74,19 +71,16 @@ function DiscountCard({ discount, onEdit, onDelete }) {
         </div>
       </div>
 
-      {/* Body */}
       <div className="card-body p-5">
         <h3 className="text-xl font-bold mb-3">{discount.title || "Untitled Discount"}</h3>
 
         <div className="flex flex-col gap-2 text-sm">
-          {/* Category */}
           <div className="flex items-center gap-2">
             <TagIcon className="w-4 h-4" />
             <span className="font-medium">Category:</span>
             <span>{discount.category || "N/A"}</span>
           </div>
 
-          {/* Validity Dates */}
           {startDate && endDate && (
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-4 h-4" />
@@ -96,7 +90,6 @@ function DiscountCard({ discount, onEdit, onDelete }) {
             </div>
           )}
 
-          {/* Status Clock */}
           {isActive && daysLeft !== null && (
             <div className="flex items-center gap-2">
               <ClockIcon className="w-4 h-4" />
@@ -117,26 +110,36 @@ function DiscountCard({ discount, onEdit, onDelete }) {
 
         {/* Actions */}
         <div className="card-actions justify-end mt-5 gap-2">
-          <button
-            onClick={() => onEdit?.(discount)}
-            className="btn btn-sm btn-outline btn-info flex items-center gap-1"
-            aria-label="Edit discount"
-          >
-            <EditIcon className="w-4 h-4" />
-            Edit
-          </button>
-          <button
-            onClick={() => onDelete?.(discount.id)}
-            className="btn btn-sm btn-outline btn-error flex items-center gap-1"
-            aria-label="Delete discount"
-          >
-            <Trash2Icon className="w-4 h-4" />
-            Delete
-          </button>
+          {filter === "my" ? (
+            <>
+              <button
+                onClick={() => onEdit?.(discount)}
+                className="btn btn-sm btn-outline btn-info flex items-center gap-1"
+                aria-label="Edit discount"
+              >
+                <EditIcon className="w-4 h-4" />
+                Edit
+              </button>
+              <button
+                onClick={() => onDelete?.(discount.id)}
+                className="btn btn-sm btn-outline btn-error flex items-center gap-1"
+                aria-label="Delete discount"
+              >
+                <Trash2Icon className="w-4 h-4" />
+                Delete
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn btn-sm btn-outline btn-primary"
+              onClick={() => console.log("View Details", discount)}
+            >
+              View Details
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-5 pb-3 text-xs">
         {isActive && <div className="text-success">🔥 Currently active</div>}
         {isExpired && <div className="text-error">⚠️ This discount has expired</div>}
@@ -161,6 +164,7 @@ DiscountCard.propTypes = {
   }).isRequired,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
+  filter: PropTypes.oneOf(["all", "my"]).isRequired,
 };
 
 export default DiscountCard;
