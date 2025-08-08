@@ -16,11 +16,13 @@ import { useDiscountStore } from "../store/useDiscountStore";
 function DiscountPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const {
     fetchDiscountsById,
     updateDiscount,
     deleteDiscount,
     loading,
+    error,
   } = useDiscountStore();
 
   const [localData, setLocalData] = useState({
@@ -73,11 +75,12 @@ function DiscountPage() {
     if (!hasChanges) return;
 
     const result = await updateDiscount(id, localData);
+
     if (result?.success) {
-      toast.success("Discount updated successfully!");
-      navigate("/?filter=my");
-    } else {
-      toast.error("Failed to update discount.");
+      // Delay for smoother UI after toast
+      setTimeout(() => {
+        navigate("/?filter=my");
+      }, 300);
     }
   };
 
@@ -93,6 +96,23 @@ function DiscountPage() {
       toast.error("Failed to delete discount.");
     }
   };
+
+  // Full-page loading (only on initial fetch)
+  if (loading && !initialData) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="loading loading-spinner loading-lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="alert alert-error">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-4xl mx-auto px-4 py-8">
@@ -113,7 +133,7 @@ function DiscountPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Inputs Grid */}
+          {/* Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <InputField
               label="Title"
@@ -160,17 +180,17 @@ function DiscountPage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Buttons */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-4">
             <button
               type="button"
               className="btn btn-error w-full sm:w-auto sm:mb-0 mb-2"
               onClick={handleDelete}
-              disabled={loading}
             >
               <TrashIcon className="w-4 h-4 mr-2" />
               Delete
             </button>
+
 
             <button
               type="submit"
