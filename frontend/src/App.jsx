@@ -10,6 +10,7 @@ import { useAuth } from "./context/AuthContext";
 import ManageShopPage from "./pages/ManageShopPage";
 import Homepage from "./pages/HomePage";
 import AddDiscountModal from "./components/AddDiscountModel";
+import DiscountPage from "./pages/DiscountPage";
 
 function App() {
   const { theme } = useThemeStore();
@@ -50,6 +51,10 @@ function App() {
         <Route
           path="*"
           element={<Navigate to={user ? "/" : "/login"} replace />}
+        />
+        <Route
+          path="/discounts/:id"
+          element={<DiscountPage />}
         />
       </Routes>
 
