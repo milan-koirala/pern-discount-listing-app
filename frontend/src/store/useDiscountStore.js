@@ -141,4 +141,32 @@ export const useDiscountStore = create((set, get) => ({
       set({ loading: false });
     }
   },
+
+
+  updateDiscount: async (id, updatedData) => {
+    set({ loading: true, error: null });
+
+    try {
+      const res = await axiosInstance.put(`/api/discounts/${id}`, updatedData);
+
+      if (res.data?.success) {
+        toast.success("Discount updated successfully");
+        return { success: true };
+      } else {
+        toast.error(res.data?.message || "Failed to update discount");
+        return { success: false };
+      }
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        (error.code === "ERR_NETWORK"
+          ? "Cannot connect to server"
+          : "Update failed");
+
+      toast.error(message);
+      return { success: false };
+    } finally {
+      set({ loading: false });
+    }
+  },
 }));
