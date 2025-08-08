@@ -23,7 +23,7 @@ export const useDiscountStore = create((set, get) => ({
 
   setLoading: (val) => set({ loading: val }),
 
-  // ✅ Reusable fetch helper
+  // Reusable fetch helper
   fetchData: async (url, label = "discounts", params = {}) => {
     set({ loading: true, error: null });
 
@@ -38,7 +38,7 @@ export const useDiscountStore = create((set, get) => ({
         set({ discounts: [] });
       }
     } catch (err) {
-      console.error(`Error fetching ${label}:`, err);
+      // console.error(`->> Error fetching ${label}:`, err);
       set({
         error: `Failed to load ${label}`,
         discounts: [],
@@ -93,6 +93,50 @@ export const useDiscountStore = create((set, get) => ({
       toast.error(message);
       set({ error: message });
       throw new Error(message);
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  fetchDiscountsById: async (id) => {
+    if (!id) {
+      set({ error: "Invalid ID", loading: false });
+      toast.error("Invalid discount ID");
+      return null; // important
+    }
+
+    set({ loading: true });
+
+    try {
+      const res = await axiosInstance.get(`/api/discounts/${id}`);
+      const data = res.data.data;
+
+      const formatDate = (isoString) => isoString?.split("T")[0];
+
+      const formattedData = {
+        ...data,
+        start_date: formatDate(data.start_date),
+        end_date: formatDate(data.end_date),
+      };
+
+      set({
+        formData: formattedData,
+        error: null,
+      });
+
+      return formattedData; // RETURN the formatted discount data
+    } catch (err) {
+      console.error("Fetch discount by ID failed:", err);
+
+      set({
+        error:
+          err?.response?.status === 429
+            ? "Rate limit exceeded"
+            : "Failed to load discount",
+        formData: {},
+      });
+
+      return null; // return null so caller can handle the error
     } finally {
       set({ loading: false });
     }
