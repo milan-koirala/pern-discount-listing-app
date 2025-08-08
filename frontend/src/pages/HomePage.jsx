@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useDiscountStore } from "../store/useDiscountStore";
 import {
   RefreshCwIcon,
@@ -19,6 +19,7 @@ function Homepage() {
   } = useDiscountStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // Get initial values from URL
   const initialSearch = searchParams.get("search") || "";
@@ -90,14 +91,6 @@ function Homepage() {
     if (dateFilter === "week") return start >= today && start <= weekEndStr;
     return true;
   });
-
-  // const handleEdit = (discount) => {
-  //   console.log("Edit clicked", discount);
-  // };
-
-  // const handleDelete = (id) => {
-  //   console.log("Delete clicked", id);
-  // };
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
@@ -182,9 +175,8 @@ function Homepage() {
             <DiscountCard
               key={discount.id}
               discount={discount}
-              filter={filter} // pass filter prop
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+              filter={filter}
+              onEdit={(d) => navigate(`/discounts/${d.id}`)}
             />
           ))}
         </div>
