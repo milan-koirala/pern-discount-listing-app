@@ -163,3 +163,27 @@ export const getDiscountsByShopId = async (req, res) => {
 };
 
 
+// Get a discount by ID
+export const getDiscountById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await sql`
+      SELECT 
+        discounts.*, 
+        shops.shop_name, 
+        shops.city
+      FROM discounts
+      JOIN shops ON discounts.shop_id = shops.id
+      WHERE discounts.id = ${id}
+    `;
+
+    if (result.length === 0) {
+      return res.status(404).json({ success: false, message: "Discount not found" });
+    }
+
+    res.status(200).json({ success: true, data: result[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
