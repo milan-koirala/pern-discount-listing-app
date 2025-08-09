@@ -1,3 +1,4 @@
+import { useState } from "react";
 import PropTypes from "prop-types";
 import {
   EditIcon,
@@ -15,8 +16,11 @@ import {
   isBefore,
   isValid,
 } from "date-fns";
+import { useDiscountStore } from "../store/useDiscountStore";
+import toast from "react-hot-toast";
 
-function DiscountCard({ discount, onEdit, onDelete, filter }) {
+function DiscountCard({ discount, onEdit, filter }) {
+  const { deleteDiscount } = useDiscountStore();
   let startDate = null;
   let endDate = null;
 
@@ -121,7 +125,7 @@ function DiscountCard({ discount, onEdit, onDelete, filter }) {
                 Edit
               </button>
               <button
-                onClick={() => onDelete?.(discount.id)}
+                onClick={() => deleteDiscount(discount.id)}
                 className="btn btn-sm btn-outline btn-error flex items-center gap-1"
                 aria-label="Delete discount"
               >
@@ -130,12 +134,7 @@ function DiscountCard({ discount, onEdit, onDelete, filter }) {
               </button>
             </>
           ) : (
-            <button
-              className="btn btn-sm btn-outline btn-primary"
-              onClick={() => console.log("View Details", discount)}
-            >
-              View Details
-            </button>
+            <ClaimButton discount={discount} />
           )}
         </div>
       </div>
@@ -151,6 +150,31 @@ function DiscountCard({ discount, onEdit, onDelete, filter }) {
   );
 }
 
+// Claim Button Component
+function ClaimButton({ discount }) {
+  const [claimed, setClaimed] = useState(false);
+
+  const handleClaim = () => {
+    toast.success(`🎉 You claimed "${discount.title}" successfully!`);
+    setClaimed(true);
+  };
+
+  return (
+    <button
+      className="btn btn-sm btn-outline btn-primary"
+      onClick={handleClaim}
+      disabled={claimed}
+    >
+      {claimed ? "Claimed ✅" : "Get Discount"}
+    </button>
+  );
+}
+
+ClaimButton.propTypes = {
+  discount: PropTypes.object.isRequired,
+};
+
+// PropTypes for DiscountCard
 DiscountCard.propTypes = {
   discount: PropTypes.shape({
     id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
@@ -163,7 +187,6 @@ DiscountCard.propTypes = {
     end_date: PropTypes.string,
   }).isRequired,
   onEdit: PropTypes.func,
-  onDelete: PropTypes.func,
   filter: PropTypes.oneOf(["all", "my"]).isRequired,
 };
 
