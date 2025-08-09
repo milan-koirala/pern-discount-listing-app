@@ -169,4 +169,20 @@ export const useDiscountStore = create((set, get) => ({
       set({ loading: false });
     }
   },
+
+
+  deleteDiscount: async (id) => {
+    // console.log("--> deleteDiscount function called", id);
+    set({ loading: true });
+    try {
+      const res = await axiosInstance.delete(`/api/discounts/${id}`);
+      set((prev) => ({ discounts: prev.discounts.filter((discount) => discount.id !== id) }));
+      toast.success("Discount deleted successfully");
+    } catch (error) {
+      console.log("Error in deleteProduct function", error);
+      toast.error("Something went wrong");
+    } finally {
+      set({ loading: false });
+    }
+  },
 }));
