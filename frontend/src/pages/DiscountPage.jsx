@@ -21,7 +21,7 @@ function DiscountPage() {
     fetchDiscountsById,
     updateDiscount,
     deleteDiscount,
-    loading,
+    loading: globalLoading,
     error,
   } = useDiscountStore();
 
@@ -34,6 +34,10 @@ function DiscountPage() {
   });
 
   const [initialData, setInitialData] = useState(null);
+
+  // Local states to separate spinner behavior
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,31 +78,37 @@ function DiscountPage() {
     e.preventDefault();
     if (!hasChanges) return;
 
-    const result = await updateDiscount(id, localData);
-
-    if (result?.success) {
-      // Delay for smoother UI after toast
-      setTimeout(() => {
-        navigate("/?filter=my");
-      }, 300);
+    try {
+      setIsSubmitting(true);
+      const result = await updateDiscount(id, localData);
+      if (result?.success) {
+        setTimeout(() => {
+          navigate("/?filter=my");
+        }, 300);
+      }
+    } catch (error) {
+      toast.error("Failed to update discount.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    const confirm = window.confirm("Are you sure you want to delete this discount?");
-    if (!confirm) return;
-
-    const result = await deleteDiscount(id);
-    if (result?.success) {
-      toast.success("Discount deleted.");
-      navigate("/?filter=my");
-    } else {
-      toast.error("Failed to delete discount.");
+    if (window.confirm("Are you sure you want to delete this discount?")) {
+      try {
+        setIsDeleting(true);
+        await deleteDiscount(id);
+        navigate("/?filter=my");
+      } catch (error) {
+        toast.error("Failed to delete discount.");
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
-  // Full-page loading (only on initial fetch)
-  if (loading && !initialData) {
+  // Full-page loading (initial fetch)
+  if (globalLoading && !initialData) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <div className="loading loading-spinner loading-lg" />
@@ -133,7 +143,6 @@ function DiscountPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Inputs */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <InputField
               label="Title"
@@ -180,24 +189,32 @@ function DiscountPage() {
             </div>
           </div>
 
-          {/* Buttons */}
+          {/* Save Changes */}
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pt-4">
+            {/* Delete Button */}
             <button
-              type="button"
-              className="btn btn-error w-full sm:w-auto sm:mb-0 mb-2"
-              onClick={handleDelete}
-            >
-              <TrashIcon className="w-4 h-4 mr-2" />
-              Delete
-            </button>
+            type="button"
+            className="btn btn-error w-full sm:w-auto sm:mb-0 mb-2"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <span className="loading loading-spinner loading-sm" />
+            ) : (
+              <>
+                <TrashIcon className="w-4 h-4 mr-2" />
+                Delete
+              </>
+            )}
+          </button>
 
-
-            <button
+          {/* Save Changes Button */}
+          <button
               type="submit"
               className="btn btn-primary w-full sm:w-auto"
-              disabled={loading || !hasChanges}
+              disabled={isSubmitting || !hasChanges}
             >
-              {loading ? (
+              {isSubmitting ? (
                 <span className="loading loading-spinner loading-sm" />
               ) : (
                 <>
