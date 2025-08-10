@@ -10,7 +10,7 @@ import {
 import InputField from "../components/InputField";
 
 function ShopRegisterPage() {
-  const { addShop, formData, setFormData, loading } = useShopStore();
+  const { registerShop, formData, setFormData, loading } = useShopStore();
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
 
@@ -38,7 +38,7 @@ function ShopRegisterPage() {
     }
 
     try {
-      await addShop();
+      await registerShop();
       setErrors({});
       navigate("/login");
     } catch (error) {

@@ -31,6 +31,51 @@ export const useShopStore = create((set, get) => ({
       error: null,
     }),
 
+  // register shop
+  // Add this inside your Zustand store object (next to loginShop, updateShopInfo, etc.)
+  registerShop: async () => {
+    set({ loading: true, error: null });
+
+    try {
+      const { formData } = get();
+
+      const res = await axiosInstance.post("/api/shops/register", {
+        shop_name: formData.shop_name,
+        email: formData.email,
+        password: formData.password,
+        city: formData.city,
+      });
+
+      if (res.data?.success) {
+        toast.success("Shop Registration successful");
+        set({ shopData: res.data.data });
+
+        // Optionally clear form
+        get().clearFormData();
+
+        return { success: true };
+      } else {
+        const message = res.data?.message || "Registration failed";
+        toast.error(message);
+        return { success: false };
+      }
+
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        (err.code === "ERR_NETWORK"
+          ? "Cannot connect to server"
+          : "Failed to register");
+
+      set({ error: message });
+      toast.error(message);
+      return { success: false };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+
   // Login shop
   loginShop: async () => {
     set({ loading: true, error: null });
